@@ -15,10 +15,11 @@ namespace StudentService.Services
             _studentRepository = studentRepository;
             _mapper = mapper;
         }
-        public async Task AddStudent(AddStudentRequest request)
+        public async Task<Student> AddStudent(AddStudentRequest request)
         {
             var student = _mapper.Map<Student>(request);
             await _studentRepository.AddStudent(student);
+            return student;
         }
     }
 }

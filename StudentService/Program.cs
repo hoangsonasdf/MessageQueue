@@ -1,5 +1,6 @@
 using Core.AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using RabbitMQ;
 using StudentService.Data;
 using StudentService.Repositories;
 using StudentService.Repositories.IRepository;
@@ -26,6 +27,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, SttudentService>();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+builder.Services.Configure<RabbitSettings>(
+    builder.Configuration.GetSection("RabbitSettings"));
+builder.Services.AddSingleton<RabbitMQConsumer>();
+builder.Services.AddSingleton<RabbitMQPublisher>();
+
 
 var app = builder.Build();
 

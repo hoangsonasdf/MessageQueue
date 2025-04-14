@@ -1,6 +1,9 @@
 ﻿using Core.DTOs.Request;
+using Core.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RabbitMQ;
+using RabbitMQ.Events;
 using StudentService.Services.IServices;
 
 namespace StudentService.Controllers
@@ -10,9 +13,11 @@ namespace StudentService.Controllers
     public class StudentController : ControllerBase
     {
         private readonly IStudentService _studentService;
-        public StudentController(IStudentService studentService)
+        private readonly RabbitMQPublisher _rabbitMQPublisher;
+        public StudentController(IStudentService studentService, RabbitMQPublisher rabbitMQPublisher)
         {
             _studentService = studentService;
+            _rabbitMQPublisher = rabbitMQPublisher;
         }
 
 
@@ -23,7 +28,14 @@ namespace StudentService.Controllers
             {
                 return BadRequest("Invalid student data.");
             }
-            await _studentService.AddStudent(request);
+            var student = await _studentService.AddStudent(request);
+            var studentEvent = new StudentCreatedEvent
+            {
+                Id = student.Id,
+                Name = student.Name,
+            };
+
+            await _rabbitMQPublisher.Publish(studentEvent);
             return Ok("Student added successfully.");
         }
     }

@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,31 +11,29 @@ namespace RabbitMQ
 {
     public class RabbitMQPublisher
     {
-        private readonly string _hostname;
-        private readonly string _queueName;
+        private readonly RabbitSettings _settings;
 
-        public RabbitMQPublisher(string hostname, string queueName)
+        public RabbitMQPublisher(IOptions<RabbitSettings> options)
         {
-            _hostname = hostname;
-            _queueName = queueName;
+            _settings = options.Value;
         }
 
         public async Task Publish<T>(T message)
         {
-            var factory = new ConnectionFactory() { HostName = _hostname };
+            var factory = new ConnectionFactory() { HostName = _settings.HostName };
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
-            await channel.QueueDeclareAsync(queue: _queueName,
+            await channel.QueueDeclareAsync(queue: _settings.QueueName,
                                  durable: false,
                                  exclusive: false,
                                  autoDelete: false,
                                  arguments: null);
 
-            var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
             await channel.BasicPublishAsync(exchange: "",
-                                 routingKey: _queueName,
-                                 body: messageBody);
+                                 routingKey: _settings.QueueName,
+                                 body: body);
         }
     }
 }

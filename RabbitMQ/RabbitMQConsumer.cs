@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
@@ -11,22 +12,20 @@ namespace RabbitMQ
 {
     public class RabbitMQConsumer
     {
-        private readonly string _hostname;
-        private readonly string _queueName;
+        private readonly RabbitSettings _settings;
 
-        public RabbitMQConsumer(string hostname, string queueName)
+        public RabbitMQConsumer(IOptions<RabbitSettings> options)
         {
-            _hostname = hostname;
-            _queueName = queueName;
+            _settings = options.Value;
         }
 
-        public async Task StartConsuming<T>(Action<T, Task> onMessageReceived)
+        public async Task StartConsuming<T>(Func<T, Task> onMessageReceived)
         {
-            var factory = new ConnectionFactory() { HostName = _hostname};
+            var factory = new ConnectionFactory() { HostName = _settings.HostName };
             var connection = await factory.CreateConnectionAsync();
             var channel = await connection.CreateChannelAsync();
 
-            await channel.QueueDeclareAsync(queue: _queueName,
+            await channel.QueueDeclareAsync(queue: _settings.QueueName,
                                  durable: false,
                                  exclusive: false,
                                  autoDelete: false,
@@ -54,9 +53,10 @@ namespace RabbitMQ
                 await Task.CompletedTask;
             };
 
-           await  channel.BasicConsumeAsync(queue: _queueName,
-                                 autoAck: true,
-                                 consumer: consumer);
+            await channel.BasicConsumeAsync(
+                queue: _settings.QueueName,
+                autoAck: true,
+                consumer: consumer);
         }
     }
 }
